@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UKey 制证 — 完整原型</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; color: #1a1a1a; background: #f5f5f5; min-height: 100vh; padding: 20px; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+.page-wrap { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0e0; overflow: hidden; max-width: 1200px; margin: 0 auto; }
+
+/* ── 通用 ── */
+.page-hd { padding: 16px 20px; border-bottom: 0.5px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; }
+.page-title { font-size: 16px; font-weight: 500; }
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 0.5px solid #d9d9d9; background: #fff; color: #1a1a1a; font-family: inherit; transition: background 0.15s; line-height: 1.5; }
+.btn:hover { background: #f5f5f5; }
+.btn-primary { background: #1677ff; color: #fff; border-color: #1677ff; }
+.btn-primary:hover { background: #4096ff; border-color: #4096ff; }
+.btn-primary:disabled { background: #b0c8f5; border-color: #b0c8f5; cursor: not-allowed; }
+.btn-link { background: none; border: none; color: #1677ff; padding: 0; font-size: 13px; cursor: pointer; font-family: inherit; }
+.btn-link:hover { color: #4096ff; }
+.back-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #8c8c8c; cursor: pointer; transition: color 0.15s; }
+.back-link:hover { color: #1a1a1a; }
+.badge { display: inline-flex; padding: 2px 7px; border-radius: 8px; font-size: 11px; white-space: nowrap; }
+.badge-new { background: #e6f1fb; color: #185fa5; }
+.badge-resup { background: #faeeda; color: #633806; }
+.quick-badge { display: inline-flex; align-items: center; background: #085041; color: #e1f5ee; font-size: 11px; padding: 2px 7px; border-radius: 8px; margin-left: 4px; }
+
+/* ── 列表页 ── */
+.alert-bar { margin: 14px 20px 0; padding: 10px 14px; background: #faeeda; border-radius: 6px; font-size: 13px; color: #633806; display: flex; align-items: center; gap: 6px; }
+.alert-bar strong { color: #A32D2D; font-size: 15px; margin: 0 3px; }
+.filter-area { padding: 14px 20px; border-bottom: 0.5px solid #e8e8e8; }
+.filter-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-row:last-child { margin-bottom: 0; }
+.filter-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.filter-label { color: #8c8c8c; white-space: nowrap; min-width: 52px; text-align: right; }
+input.fi, select.fi { padding: 5px 8px; border: 0.5px solid #d9d9d9; border-radius: 6px; font-size: 13px; background: #fff; color: #1a1a1a; font-family: inherit; outline: none; transition: border-color 0.15s; }
+input.fi:focus, select.fi:focus { border-color: #1677ff; }
+input.fi { width: 130px; }
+select.fi { width: 150px; }
+.filter-actions { margin-left: auto; display: flex; gap: 8px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; min-width: 960px; }
+th { text-align: left; padding: 10px; color: #8c8c8c; font-weight: 400; border-bottom: 0.5px solid #e8e8e8; background: #fafafa; white-space: nowrap; }
+td { padding: 11px 10px; border-bottom: 0.5px solid #f0f0f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tbody tr:hover td { background: #fafafa; }
+.pg { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; font-size: 13px; color: #8c8c8c; border-top: 0.5px solid #e8e8e8; }
+.pg-ctrl { display: flex; align-items: center; gap: 8px; }
+.pg-num { background: #1677ff; color: #fff; padding: 3px 10px; border-radius: 6px; font-size: 13px; }
+
+/* ── 快捷制证列表页 ── */
+.qc-table th, .qc-table td { padding: 11px 16px; }
+.qc-table td:nth-child(4) { font-weight: 500; color: #A32D2D; }
+
+/* ── 制证工作台 ── */
+.work-hd { padding: 14px 20px; border-bottom: 0.5px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; }
+.remain { font-size: 13px; color: #8c8c8c; }
+.remain strong { color: #1a1a1a; font-weight: 500; }
+.scene-nav { display: flex; gap: 6px; padding: 10px 20px; background: #fafafa; border-bottom: 0.5px solid #e8e8e8; flex-wrap: wrap; align-items: center; }
+.scene-btn { padding: 4px 10px; font-size: 11px; border-radius: 10px; cursor: pointer; border: 0.5px solid #d9d9d9; background: #fff; color: #8c8c8c; font-family: inherit; transition: all 0.15s; }
+.scene-btn:hover { border-color: #1677ff; color: #1677ff; }
+.scene-btn.active { background: #1677ff; color: #fff; border-color: #1677ff; }
+.work-body { padding: 16px 20px; }
+.info-bar { display: flex; align-items: flex-start; gap: 8px; background: #e6f1fb; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #185fa5; line-height: 1.6; margin-bottom: 16px; }
+.warn-bar { display: flex; align-items: flex-start; gap: 8px; background: #faeeda; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #633806; line-height: 1.6; margin-bottom: 16px; }
+.err-bar { display: flex; align-items: flex-start; gap: 8px; background: #fcebeb; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #791f1f; line-height: 1.6; margin-bottom: 16px; }
+.ok-bar { display: flex; align-items: flex-start; gap: 8px; background: #e1f5ee; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #085041; line-height: 1.6; margin-bottom: 16px; }
+.work-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.section-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { background: #fafafa; border-radius: 6px; padding: 10px 12px; }
+.field-label { font-size: 11px; color: #8c8c8c; margin-bottom: 3px; }
+.field-val { font-size: 13px; font-weight: 500; }
+.ukey-slot { border: 1.5px dashed #d9d9d9; border-radius: 8px; padding: 20px; text-align: center; background: #fafafa; transition: all 0.2s; }
+.ukey-slot.connected { border-color: #1D9E75; background: #e1f5ee; }
+.ukey-slot.error { border-color: #E24B4A; background: #fcebeb; }
+.ukey-label { font-size: 13px; color: #8c8c8c; margin-top: 8px; }
+.ukey-no { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+.step-bar { display: flex; align-items: center; margin: 14px 0 6px; }
+.step-item { display: flex; align-items: center; gap: 5px; }
+.step-dot { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #d9d9d9; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; background: #fff; color: #8c8c8c; transition: all 0.2s; }
+.step-dot.done { background: #1677ff; border-color: #1677ff; color: #fff; }
+.step-dot.active { background: #fff; border-color: #1677ff; color: #1677ff; }
+.step-dot.spin { background: #1677ff; border-color: #1677ff; color: #fff; animation: spin 0.8s linear infinite; }
+.step-dot.err { border-color: #E24B4A; color: #E24B4A; }
+.step-line { flex: 1; height: 1px; background: #e8e8e8; min-width: 16px; margin: 0 4px; transition: background 0.2s; }
+.step-line.done { background: #1677ff; }
+.step-lbl { font-size: 12px; color: #8c8c8c; white-space: nowrap; }
+.step-lbl.active { color: #1a1a1a; font-weight: 500; }
+.step-msg { font-size: 12px; color: #8c8c8c; text-align: center; padding: 6px 0; min-height: 24px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.submit-row { margin-top: 14px; }
+.modal-wrap { min-height: 280px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-top: 14px; }
+.modal { background: #fff; border-radius: 10px; width: 420px; max-width: 95%; border: 0.5px solid #e0e0e0; }
+.modal-hd { padding: 16px 20px; border-bottom: 0.5px solid #f0f0f0; font-size: 15px; font-weight: 500; }
+.modal-bd { padding: 18px 20px; }
+.modal-ft { padding: 12px 20px; border-top: 0.5px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 8px; }
+.form-item { margin-bottom: 12px; }
+.form-label { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
+input.form-ctrl { width: 100%; padding: 7px 10px; border: 0.5px solid #d9d9d9; border-radius: 6px; font-size: 13px; background: #fff; color: #1a1a1a; font-family: inherit; outline: none; }
+input.form-ctrl:focus { border-color: #1677ff; }
+.courier-no { font-size: 22px; font-weight: 500; color: #1D9E75; letter-spacing: 1px; text-align: center; padding: 14px 0 6px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     S1: UKey 制证 — 原有订单列表页
+══════════════════════════════════════ -->
+<div id="s-list" class="screen active">
+<div class="page-wrap">
+  <div class="page-hd">
+    <span class="page-title">UKey 制证</span>
+    <button class="btn btn-primary" onclick="go('s-qclist')">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      快捷制证
+      <span class="quick-badge">批量提效</span>
+    </button>
+  </div>
+
+  <div class="alert-bar">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M8 2L14.5 13H1.5L8 2Z" stroke="#A32D2D" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="#A32D2D" stroke-width="1.2" stroke-linecap="round"/></svg>
+    共有 <strong>13</strong> 个制证单等待处理！
+  </div>
+
+  <div class="filter-area">
+    <div class="filter-row">
+      <div class="filter-item"><span class="filter-label">订单编号</span><input class="fi" placeholder="请输入"></div>
+      <div class="filter-item"><span class="filter-label">项目（交易平台）</span><select class="fi"><option value="">请选择</option><option>浙江省统一招投标交易平台</option><option>申能股份数字化集采平台</option></select></div>
+      <div class="filter-item"><span class="filter-label">机构/个人名称</span><input class="fi" placeholder="请输入机构/个人"></div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" style="padding:5px 16px">查询</button>
+        <button class="btn" style="padding:5px 16px">重置</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-item"><span class="filter-label">创建日期</span><input class="fi" type="date" style="width:130px"><span style="margin:0 4px;color:#8c8c8c">至</span><input class="fi" type="date" style="width:130px"></div>
+      <div class="filter-item" style="margin-left:12px"><span class="filter-label">状态</span><select class="fi"><option>新办待制证 +3</option><option>新办待制证</option><option>续期待制证</option><option>补办待制证</option></select></div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-item"><span class="filter-label">制证时间</span><input class="fi" type="date" style="width:130px"><span style="margin:0 4px;color:#8c8c8c">至</span><input class="fi" type="date" style="width:130px"></div>
+      <div class="filter-item" style="margin-left:12px"><span class="filter-label">制证人</span><input class="fi" placeholder="请输入"></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:160px"><col style="width:120px"><col style="width:140px"><col style="width:70px"><col style="width:115px"><col style="width:135px"><col style="width:115px"><col style="width:125px"><col style="width:90px"><col style="width:75px"><col style="width:55px"></colgroup>
+      <thead><tr><th>订单号</th><th>项目名称</th><th>机构/个人名称</th><th>经办人</th><th>经办人手机号</th><th>创建时间</th><th>制证时间</th><th>介质型号</th><th>状态</th><th>制证人</th><th>操作</th></tr></thead>
+      <tbody>
+        <tr><td title="T202603271141701640">T202603271141701640</td><td>浙江省统一招投标</td><td>杭州天谷信息科技</td><td></td><td></td><td>2026-03-27 13:55:32</td><td>—</td><td>金属外壳海泰30079</td><td><span class="badge badge-resup">补办待制证</span></td><td>—</td><td><button class="btn-link">处理</button></td></tr>
+        <tr><td>ZS20260330188935...</td><td>申能股份数字化采购</td><td>锦鲤商务咨询（上海）</td><td>褚思华</td><td>15221393125</td><td>2026-03-30 17:58:29</td><td>—</td><td>金属外壳海泰30079</td><td><span class="badge badge-new">新办待制证</span></td><td>—</td><td><button class="btn-link">处理</button></td></tr>
+        <tr><td>T202603300104385...</td><td>湖北省政府采购数据</td><td>湖北闻韬医疗科技</td><td>韦亚涛</td><td>15071450533</td><td>2026-03-30 18:05:54</td><td>—</td><td>金属外壳海泰30079</td><td><span class="badge badge-new">新办待制证</span></td><td>—</td><td><button class="btn-link">处理</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pg"><span>共 13 条</span><div class="pg-ctrl"><select class="fi" style="width:80px"><option>20条/页</option></select><button class="btn" style="padding:4px 10px">‹</button><span class="pg-num">1</span><button class="btn" style="padding:4px 10px">›</button><span style="color:#8c8c8c">前往</span><input class="fi" style="width:40px;text-align:center" value="1"><span style="color:#8c8c8c">页</span></div></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S2: 快捷制证 — 项目聚合列表
+══════════════════════════════════════ -->
+<div id="s-qclist" class="screen">
+<div class="page-wrap">
+  <div class="page-hd">
+    <div class="back-link" onclick="go('s-list')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      返回制证列表
+    </div>
+    <span class="page-title" style="position:absolute;left:50%;transform:translateX(-50%)">快捷制证</span>
+    <span></span>
+  </div>
+
+  <div style="padding:0 20px">
+    <div class="alert-bar" style="margin:14px 0 0">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M8 2L14.5 13H1.5L8 2Z" stroke="#A32D2D" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="#A32D2D" stroke-width="1.2" stroke-linecap="round"/></svg>
+      共 <strong style="color:#A32D2D;margin:0 3px">673</strong> 个未开始制证单等待处理
+    </div>
+  </div>
+
+  <div class="table-wrap" style="padding:12px 0 0">
+    <table class="qc-table">
+      <colgroup><col style="width:auto"><col style="width:180px"><col style="width:180px"><col style="width:120px"><col style="width:80px"></colgroup>
+      <thead><tr><th style="padding-left:20px">项目名称</th><th>最早任务日期</th><th>介质类型</th><th>待制证数量</th><th style="padding-right:20px">操作</th></tr></thead>
+      <tbody>
+        <tr><td style="padding-left:20px">浙江省统一招投标交易平台</td><td>2026-01-19 10:42:00</td><td>金属外壳海泰 30079</td><td>99</td><td style="padding-right:20px"><button class="btn-link" onclick="go('s-work')">处理</button></td></tr>
+        <tr><td style="padding-left:20px">浙江 CA 互认</td><td>2026-01-19 10:42:00</td><td>金属外壳海泰 30079</td><td>70</td><td style="padding-right:20px"><button class="btn-link">处理</button></td></tr>
+        <tr><td style="padding-left:20px">湖北省政府采购数据汇聚平台 CA 办理</td><td>2026-01-19 10:42:00</td><td>金属外壳海泰 30079</td><td>23</td><td style="padding-right:20px"><button class="btn-link">处理</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pg"><span>共 3 个项目</span></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S3: 快捷制证 — 制证工作台
+══════════════════════════════════════ -->
+<div id="s-work" class="screen">
+<div class="page-wrap">
+  <div class="work-hd">
+    <div class="back-link" onclick="go('s-qclist')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      返回快捷制证列表
+    </div>
+    <span class="remain">浙江省统一招投标交易平台 · 剩余 <strong id="remain-cnt">56</strong> 个制证任务</span>
+  </div>
+
+  <div class="scene-nav">
+    <span style="font-size:11px;color:#8c8c8c;line-height:24px;margin-right:4px">场景：</span>
+    <button class="scene-btn active" onclick="setScene('idle',this)">待插入</button>
+    <button class="scene-btn" onclick="setScene('reading',this)">读取中</button>
+    <button class="scene-btn" onclick="setScene('ready',this)">已就绪</button>
+    <button class="scene-btn" onclick="setScene('processing',this)">制证中</button>
+    <button class="scene-btn" onclick="setScene('done',this)">单张完成</button>
+    <button class="scene-btn" onclick="setScene('courier',this)">快递单号</button>
+    <button class="scene-btn" onclick="setScene('err-pin',this)">PIN 错误</button>
+    <button class="scene-btn" onclick="setScene('err-verify',this)">校验异常</button>
+    <button class="scene-btn" onclick="setScene('err-ukey',this)">UKey 已有证书</button>
+  </div>
+
+  <div class="work-body">
+    <div id="noti-bar"></div>
+    <div class="work-grid">
+      <div>
+        <div class="section-title">当前制证任务</div>
+        <div class="fields">
+          <div class="field"><div class="field-label">证书名称（企业）</div><div class="field-val">esigntest 中酒投资管理有限公司</div></div>
+          <div class="field"><div class="field-label">UKey 介质型号</div><div class="field-val" style="color:#185fa5">金属外壳海泰 30079</div></div>
+          <div class="field"><div class="field-label">CA 机构</div><div class="field-val">ZJCA 非官公通道</div></div>
+          <div class="field"><div class="field-label">证书算法</div><div class="field-val">SM2</div></div>
+          <div class="field"><div class="field-label">时限（年）</div><div class="field-val">1</div></div>
+          <div class="field"><div class="field-label">统一社会信用代码</div><div class="field-val">Y11101013174161273</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">UKey</div>
+        <div id="ukey-slot" class="ukey-slot">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:0.35"><rect x="6" y="10" width="20" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><rect x="12" y="6" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="17" r="2" fill="currentColor" opacity="0.5"/></svg>
+          <div id="ukey-label" class="ukey-label">请插入 UKey</div>
+          <div id="ukey-no" class="ukey-no"></div>
+        </div>
+
+        <div id="step-wrap" style="display:none;margin-top:14px">
+          <div class="step-bar">
+            <div class="step-item"><div class="step-dot active" id="sd1">1</div><span class="step-lbl active" id="sl1">制证</span></div>
+            <div class="step-line" id="ln1"></div>
+            <div class="step-item"><div class="step-dot" id="sd2">2</div><span class="step-lbl" id="sl2">校验</span></div>
+            <div class="step-line" id="ln2"></div>
+            <div class="step-item"><div class="step-dot" id="sd3">3</div><span class="step-lbl" id="sl3">灌章</span></div>
+            <div class="step-line" id="ln3"></div>
+            <div class="step-item"><div class="step-dot" id="sd4">4</div><span class="step-lbl" id="sl4">完成</span></div>
+          </div>
+          <div id="step-msg" class="step-msg"></div>
+        </div>
+
+        <div class="submit-row">
+          <button class="btn btn-primary" id="btn-submit" style="width:100%" disabled>提交</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-zone"></div>
+</div>
+</div>
+
+<script>
+function go(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id === 's-work') setScene('idle', document.querySelector('.scene-btn'));
+}
+
+function setScene(s, btn) {
+  document.querySelectorAll('.scene-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+
+  var noti = document.getElementById('noti-bar');
+  var slot = document.getElementById('ukey-slot');
+  var lbl = document.getElementById('ukey-label');
+  var no = document.getElementById('ukey-no');
+  var stepWrap = document.getElementById('step-wrap');
+  var submit = document.getElementById('btn-submit');
+  var modal = document.getElementById('modal-zone');
+
+  noti.innerHTML=''; slot.className='ukey-slot'; no.textContent='';
+  stepWrap.style.display='none'; modal.innerHTML='';
+  submit.disabled=true; submit.textContent='提交';
+
+  var ico_info = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px"><circle cx="8" cy="8" r="7" stroke="#185fa5" stroke-width="1.2"/><rect x="7.3" y="7" width="1.4" height="5" rx="0.5" fill="#185fa5"/><circle cx="8" cy="5" r="0.8" fill="#185fa5"/></svg>';
+  var ico_ok = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px"><circle cx="8" cy="8" r="7" stroke="#085041" stroke-width="1.2"/><path d="M5 8l2 2 4-4" stroke="#085041" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ico_warn = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px"><path d="M8 2L14.5 13H1.5L8 2Z" stroke="#633806" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="#633806" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  var ico_err = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px"><circle cx="8" cy="8" r="7" stroke="#791f1f" stroke-width="1.2"/><path d="M8 5v4M8 11v.5" stroke="#791f1f" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  var spin_sm = '<div style="width:14px;height:14px;border:2px solid #b5d4f4;border-top-color:#1677ff;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;margin-top:2px"></div>';
+
+  if(s==='idle'){
+    lbl.textContent='请插入 UKey';
+    noti.innerHTML='<div class="info-bar">'+ico_info+'<span>请插入 UKey，系统将自动读取编号后解禁提交按钮。</span></div>';
+  }
+  else if(s==='reading'){
+    slot.className='ukey-slot connected'; lbl.textContent='正在读取 UKey……';
+    noti.innerHTML='<div class="info-bar">'+spin_sm+'<span>正在读取 UKey 编号，请稍候……</span></div>';
+  }
+  else if(s==='ready'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919'; submit.disabled=false;
+    noti.innerHTML='<div class="ok-bar">'+ico_ok+'<span>UKey 读取成功，编号 4118080800007919，点击【提交】开始制证。</span></div>';
+  }
+  else if(s==='processing'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919';
+    submit.disabled=true; submit.textContent='处理中……';
+    stepWrap.style.display='block'; setStep(1,'spin');
+    document.getElementById('step-msg').textContent='正在导入证书请稍后……';
+  }
+  else if(s==='done'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919'; submit.disabled=false;
+    stepWrap.style.display='block'; setStep(4,'done');
+    document.getElementById('remain-cnt').textContent='55';
+    noti.innerHTML='<div class="ok-bar">'+ico_ok+'<span>制证完成！请拔出当前 UKey 并插入下一把。</span></div>';
+  }
+  else if(s==='courier'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919';
+    stepWrap.style.display='block'; setStep(4,'done');
+    noti.innerHTML='<div class="ok-bar">'+ico_ok+'<span>发货单全部制证完成，快递已下单，面单已打印。</span></div>';
+    modal.innerHTML='<div class="modal-wrap"><div class="modal"><div class="modal-hd">快递单号确认</div><div class="modal-bd"><div style="font-size:13px;color:#8c8c8c;margin-bottom:4px">本批次发货单已完成全部制证，快递单号如下：</div><div class="courier-no">SF1234567890123</div><div style="font-size:12px;color:#8c8c8c;text-align:center;margin-top:4px">面单已自动打印，确认后继续下一个制证任务。</div></div><div class="modal-ft"><button class="btn btn-primary" onclick="setScene(\'idle\',null)">确认，继续制证</button></div></div></div>';
+  }
+  else if(s==='err-pin'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919';
+    stepWrap.style.display='block'; setStep(1,'active');
+    noti.innerHTML='<div class="err-bar">'+ico_err+'<span>系统 PIN 码错误，请手动输入 PIN 码后重试。</span></div>';
+    modal.innerHTML='<div class="modal-wrap"><div class="modal"><div class="modal-hd">输入 PIN 码</div><div class="modal-bd"><div style="font-size:13px;color:#8c8c8c;margin-bottom:14px">系统默认 PIN 码不匹配，请手动输入该项目的 UKey PIN 码：</div><div class="form-item"><div class="form-label">PIN 码</div><input type="password" class="form-ctrl" placeholder="请输入 PIN 码"></div></div><div class="modal-ft"><button class="btn" onclick="setScene(\'ready\',null)">取消</button><button class="btn btn-primary" onclick="setScene(\'processing\',null)">确认并继续制证</button></div></div></div>';
+  }
+  else if(s==='err-verify'){
+    slot.className='ukey-slot connected'; lbl.textContent='UKey 已就绪';
+    no.textContent='编号：4118080800007919';
+    stepWrap.style.display='block'; setStep(2,'err');
+    noti.innerHTML='<div class="err-bar">'+ico_err+'<span>校验异常，可重试或跳过该制证单在制证列表中处理。</span></div>';
+    modal.innerHTML='<div class="modal-wrap"><div class="modal"><div class="modal-hd">校验异常</div><div class="modal-bd"><div style="font-size:13px;color:#8c8c8c">证书校验失败（错误码：ERR_VERIFY_001）。<br><br>可点击【重试】重新执行校验；或点击【跳过】跳过该制证单，之后在制证列表中手动处理。</div></div><div class="modal-ft"><button class="btn" onclick="setScene(\'idle\',null)">跳过该制证单</button><button class="btn btn-primary" onclick="setScene(\'processing\',null)">重试</button></div></div></div>';
+  }
+  else if(s==='err-ukey'){
+    slot.className='ukey-slot error'; lbl.textContent='UKey 已有证书';
+    noti.innerHTML='<div class="warn-bar">'+ico_warn+'<span>检测到当前 UKey 已写入证书，无法继续制证。请拔出并插入空白 UKey。</span></div>';
+  }
+}
+
+function setStep(active, state) {
+  for(var i=1;i<=4;i++){
+    var dot = document.getElementById('sd'+i);
+    var lbl = document.getElementById('sl'+i);
+    var line = document.getElementById('ln'+i);
+    dot.className='step-dot'; lbl.className='step-lbl';
+    dot.textContent=i;
+    if(line) line.className='step-line';
+    if(i < active){
+      dot.className='step-dot done'; dot.textContent='✓';
+      if(line) line.className='step-line done';
+    } else if(i === active){
+      if(state==='spin'){ dot.className='step-dot spin'; dot.textContent=''; }
+      else if(state==='err'){ dot.className='step-dot err'; }
+      else if(state==='done'){ dot.className='step-dot done'; dot.textContent='✓'; if(line) line.className='step-line done'; }
+      else { dot.className='step-dot active'; }
+      lbl.className='step-lbl active';
+    }
+  }
+  var msg = document.getElementById('step-msg');
+  var msgs = ['', '正在导入证书请稍后……', '证书已导入，正在进行校验……', '证书校验通过，正在导入印章……', ''];
+  if(state==='spin') msg.textContent = msgs[active] || '';
+  else msg.textContent = '';
+}
+
+setScene('idle', document.querySelector('.scene-btn'));
+</script>
+</body>
+</html>
